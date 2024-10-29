@@ -1,16 +1,6 @@
 import matplotlib.pyplot as plt
 
 
-def gcd(a: float, b: float) -> float:
-    a, b = abs(a), abs(b)
-    while a != b:
-        if a > b:
-            a -= b
-        else:
-            b -= a
-    return a
-
-
 class TargetFunction:
     def __init__(self, a: float, b: float, result: str) -> None:
         self.a = a
@@ -21,6 +11,7 @@ class TargetFunction:
 
     def calculate(self, x: float, y: float) -> float:
         return self.a * x + self.b * y
+
 
 class Inequality:
     def __init__(self, a: float, b: float, sign: str, result: float) -> None:
@@ -109,6 +100,8 @@ class LPP:
             return min([self.tf.calculate(*point) for point in correct_points])
         if tf.result == "max":
             return max([self.tf.calculate(*point) for point in correct_points])
+        res = [self.tf.calculate(*point) for point in correct_points]
+        return max(res), min(res)
 
 
 tf = TargetFunction(176, 185, "min")
