@@ -23,6 +23,3 @@ class Inequality:
             return "lower"
         else:
             return "upper"
-
-
-class
