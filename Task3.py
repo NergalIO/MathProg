@@ -217,33 +217,31 @@ class TransportationProblem:
     @staticmethod
     def get_loop(plan_positions_,
                  loop_):
-        def get_loop(plan_positions, initial_loop):
-            stack = [initial_loop]
-            visited_loops = set()
+        stack = [initial_loop]
+        visited_loops = set()
 
-            while stack:
-                loop = stack.pop()
-                entering_cell_position = loop[0]
+        while stack:
+            loop = stack.pop()
+            entering_cell_position = loop[0]
 
 
-                if len(loop) > 3:
-                    if len(TransportationProblem.get_possible_next_cells(loop, [entering_cell_position])) == 1:
-                        return loop
-                    else:
-                        continue
+            if len(loop) > 3:
+                if len(TransportationProblem.get_possible_next_cells(loop, [entering_cell_position])) == 1:
+                    return loop
+                else:
+                    continue
 
-                not_visited = [coords for coords in plan_positions if coords not in loop]
-                possible_next_cells = TransportationProblem.get_possible_next_cells(loop, not_visited)
+            not_visited = [coords for coords in plan_positions if coords not in loop]
+            possible_next_cells = TransportationProblem.get_possible_next_cells(loop, not_visited)
 
-                for cell in possible_next_cells:
-                    new_loop = loop + [cell]
-                    new_loop_tuple = tuple(new_loop)
+            for cell in possible_next_cells:
+                new_loop = loop + [cell]
+                new_loop_tuple = tuple(new_loop)
 
-                    if new_loop_tuple not in visited_loops:
-                        visited_loops.add(new_loop_tuple)
-                        stack.append(new_loop)
-
-            return None
+                if new_loop_tuple not in visited_loops:
+                    visited_loops.add(new_loop_tuple)
+                    stack.append(new_loop)
+        return None
 
     @staticmethod
     def transport(plan: Plan, loop):
