@@ -32,6 +32,20 @@ class Plan:
     def __init__(self, data: list[Cell]):
         self.data = data
 
+    def get_cell(self, coordinates: tuple[int, int]) -> 'Cell':
+        for cell in self.data:
+            if cell.coordinates == coordinates:
+                return cell
+            if not self.check_cell(coordinates):
+                self.data.append(Cell(coordinates, 0))
+                return self.data[-1]
+
+    def check_cell(self, coordinates) -> bool:
+        for cell in self.data:
+            if cell.coordinates == coordinates:
+                return True
+        return False
+
     def __copy__(self) -> 'Plan':
         return Plan(data=[cell.__copy__() for cell in self.data])
 
@@ -139,22 +153,22 @@ class TransportationProblem:
         difference = TransportationProblem.calculate_difference(cost_table, plan, us, vs)
 
         for item in difference:
-            if item.value >= 0:
+            if item.value > 0:
                 return True
         return False
 
     @staticmethod
+    def get_score(cost_table, plan) -> tuple[int, tuple[int, int]]:
+        us, vs = TransportationProblem.calculate_potentials(cost_table, plan)
+        difference = TransportationProblem.calculate_difference(cost_table, plan, us, vs)
+        return max([(cell.value, cell.coordinates) for cell in difference])
+
+    @staticmethod
     def improve(cost_table, plan) -> Plan:
         _plan = plan.__copy__()
+        score, pos = TransportationProblem.get_score(cost_table, plan)
         while TransportationProblem.check_plan(cost_table, _plan):
-            us, vs = TransportationProblem.calculate_potentials(cost_table, _plan)
-            entering_position = TransportationProblem.get_entering_cell_position(
-                TransportationProblem.calculate_difference(cost_table, _plan, us, vs)
-            ).coordinates
-            loop = TransportationProblem.get_loop([cell.coordinates for cell in _plan], [entering_position])
-            if not loop:
-                exit("Не найден путь цикла!")
-            _plan = TransportationProblem.transport(_plan, loop)
+            score, pos = TransportationProblem.transport(cost_table, _plan, pos)
         return _plan
 
     @staticmethod
@@ -215,55 +229,23 @@ class TransportationProblem:
             return cells_in_row
 
     @staticmethod
-    def get_loop(plan_positions_,
-                 loop_):
-        stack = [initial_loop]
-        visited_loops = set()
-
-        while stack:
-            loop = stack.pop()
-            entering_cell_position = loop[0]
-
-
-            if len(loop) > 3:
-                if len(TransportationProblem.get_possible_next_cells(loop, [entering_cell_position])) == 1:
-                    return loop
-                else:
-                    continue
-
-            not_visited = [coords for coords in plan_positions if coords not in loop]
-            possible_next_cells = TransportationProblem.get_possible_next_cells(loop, not_visited)
-
-            for cell in possible_next_cells:
-                new_loop = loop + [cell]
-                new_loop_tuple = tuple(new_loop)
-
-                if new_loop_tuple not in visited_loops:
-                    visited_loops.add(new_loop_tuple)
-                    stack.append(new_loop)
-        return None
-
-    @staticmethod
-    def transport(plan: Plan, loop):
-        even_cells = set(loop[0::2])
-        odd_cells = set(loop[1::2])
-
-        # Создаем словарь значений для вложения по координатам
-        value_map = {cell.coordinates: cell.value for cell in plan}
-
-        # Находим координаты и значение для минимальной четной ячейки
-        leaving_coords = sorted(odd_cells, key=lambda coords: value_map[coords])
-        leaving_value = value_map[leaving_coords[0]]
-
-        # Создаем новый план, изменяя значения в соответствии с четными и нечетными ячейками
-        _plan = Plan([
-            Cell(coordinates=cell.coordinates,
-                 value=cell.value + leaving_value if cell.coordinates in even_cells else cell.value - leaving_value
-                 if cell.coordinates in odd_cells else cell.value)
-            for cell in plan
-        ])
-
-        return _plan
+    def transport(cost_table, plan_positions, start_position):
+        not_visited = set([cell.coordinates for cell in plan_positions])
+        for position1 in [cell for cell in not_visited if not_visited - {start_position}
+                          if cell[1] == start_position[0]]:
+            for position2 in [cell for cell in not_visited if not_visited - {start_position, position1}
+                                if cell[1] == position1[0]]:
+                for position3 in [cell for cell in not_visited if not_visited - {start_position, position1, position2}
+                                    if cell[1] == position2[0]]:
+                    if start_position[1] == position3[1]:
+                        print([str(cell) for cell in plan_positions])
+                        change = min(plan_positions.get_cell((i, j)).value for i, j in [position1, position3])
+                        for i, j in [start_position, position2]:
+                            plan_positions.get_cell((i, j)).value += change
+                        for i, j in [position1, position3]:
+                            plan_positions.get_cell((i, j)).value -= change
+                        print([str(cell) for cell in plan_positions])
+                        return TransportationProblem.get_score(cost_table, plan)
 
     @staticmethod
     def forfeit_in_list(_list: list[Cell]) -> int:
@@ -276,14 +258,14 @@ class TransportationProblem:
             return -1
 
 
-cost_table = [[3, 2, 4, 6],
-              [2, 3, 1, 2],
-              [3, 2, 7, 4]
+cost_table = [[20, 8, 7, 9],
+              [14, 4, 12, 5],
+              [22, 15, 11, 14]
               ]
 
-supply = [50, 40, 20]
+supply = [250, 300, 200]
 
-demand = [30, 25, 30, 25]
+demand = [290, 170, 140, 150]
 
 ct = CostTable.from_int_list(cost_table=cost_table)
 tp = TransportationProblem(cost_table=ct, demand=demand, supply=supply)
@@ -293,7 +275,3 @@ us, vs = tp.calculate_potentials(cost_table, plan)
 difference = tp.calculate_difference(cost_table, plan, us, vs)
 
 optimal_plan = tp.improve(cost_table, plan)
-print(f"Было : {[str(cell) for cell in plan]}")
-print(f"Стало: {[str(cell) for cell in optimal_plan]}")
-
-
